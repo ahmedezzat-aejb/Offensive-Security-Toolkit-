@@ -1,0 +1,39 @@
+import xml.etree.ElementTree as ET
+import sys
+
+DANGEROUS_PERMS = [
+    "READ_SMS", "SEND_SMS", "READ_CONTACTS", "ACCESS_FINE_LOCATION",
+    "RECORD_AUDIO", "CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"
+]
+
+def analyze_manifest(manifest_path):
+    print(f"[*] Analyzing {manifest_path}...\n")
+    try:
+        tree = ET.parse(manifest_path)
+        root = tree.getroot()
+        ns = {'android': 'http://android.com'}
+
+        print("--- Dangerous Permissions Found ---")
+        for perm in root.findall('uses-permission'):
+            name = perm.attrib.get(f"{{{ns['android']}}}name", "")
+            for dp in DANGEROUS_PERMS:
+                if dp in name:
+                    print(f"[!] HIGH RISK PERMISSION: {name}")
+
+        print("\n--- Exported Components (Potential Attack Surface) ---")
+        application = root.find('application')
+        if application is not None:
+            for tag in ['activity', 'service', 'receiver', 'provider']:
+                for item in application.findall(tag):
+                    exported = item.attrib.get(f"{{{ns['android']}}}exported")
+                    name = item.attrib.get(f"{{{ns['android']}}}name")
+                    if exported == "true":
+                        print(f"[+] Exported {tag.upper()}: {name}")
+    except Exception as e:
+        print(f"[!] Error analyzing manifest: {e}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python3 apk_manifest_audit.py <path_to_AndroidManifest.xml>")
+    else:
+        analyze_manifest(sys.argv[1])
