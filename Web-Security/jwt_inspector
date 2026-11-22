@@ -1,0 +1,31 @@
+import base64
+import json
+import sys
+
+def decode_jwt_part(part):
+    padding = '=' * (4 - len(part) % 4)
+    return json.loads(base64.urlsafe_b64decode(part + padding).decode('utf-8'))
+
+def inspect_jwt(token):
+    print("[*] Inspecting JSON Web Token (JWT)...\n")
+    try:
+        parts = token.split('.')
+        if len(parts) != 3:
+            print("[!] Invalid JWT format.")
+            return
+        header = decode_jwt_part(parts[0])
+        payload = decode_jwt_part(parts[1])
+
+        print("[+] Header:", json.dumps(header, indent=2))
+        print("[+] Payload:", json.dumps(payload, indent=2))
+
+        if header.get("alg", "").lower() == "none":
+            print("\n[!] CRITICAL: 'none' algorithm detected! Vulnerable to signature bypass.")
+    except Exception as e:
+        print(f"[!] Error decoding JWT: {e}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python3 jwt_inspector.py <jwt_token>")
+    else:
+        inspect_jwt(sys.argv[1])
