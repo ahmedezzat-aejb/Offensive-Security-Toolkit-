@@ -1,0 +1,36 @@
+import requests
+import sys
+
+SQL_PAYLOADS = ["'", "\"", "1' OR '1'='1", "1\" OR \"1\"=\"1"]
+DB_ERRORS = [
+    "you have an error in your sql syntax",
+    "warning: mysql",
+    "unclosed quotation mark after the character string",
+    "quoted string not properly terminated",
+    "pg_query(): query failed"
+]
+
+def test_sqli(url):
+    if "=" not in url:
+        print("[!] URL must contain a parameter (e.g., http://site.local)")
+        return
+    print(f"[*] Testing SQLi error-based indicators on: {url}\n")
+    for payload in SQL_PAYLOADS:
+        test_url = url + payload
+        try:
+            res = requests.get(test_url, timeout=5)
+            body = res.text.lower()
+            for error in DB_ERRORS:
+                if error in body:
+                    print(f"[!] POTENTIAL SQLi VULNERABILITY DETECTED!")
+                    print(f"    Payload: {payload} | Error matched: {error}")
+                    return
+        except Exception as e:
+            print(f"[!] Request failed: {e}")
+    print("[-] No obvious error-based SQLi detected.")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python3 sqli_scanner.py <http://lab-target.local>")
+    else:
+        test_sqli(sys.argv[1])
