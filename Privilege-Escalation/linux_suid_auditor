@@ -1,0 +1,20 @@
+import os
+import stat
+
+KNOWN_GTFOBINS = ["nmap", "vim", "find", "bash", "more", "less", "nano", "cp", "python", "python3", "perl"]
+
+def find_suid_binaries(start_dir="/usr/bin"):
+    print(f"[*] Scanning {start_dir} for SUID binaries...\n")
+    for root, _, files in os.walk(start_dir):
+        for file in files:
+            filepath = os.path.join(root, file)
+            try:
+                st = os.stat(filepath)
+                if st.st_mode & stat.S_ISUID:
+                    flag = " [!] HIGH RISK (Check GTFOBins)" if file in KNOWN_GTFOBINS else ""
+                    print(f"[+] SUID Found: {filepath}{flag}")
+            except Exception:
+                pass
+
+if __name__ == "__main__":
+    find_suid_binaries()
